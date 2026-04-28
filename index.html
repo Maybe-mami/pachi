@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まみちゃんの分析アプリ【北斗無双専用】</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', 'Hiragino Sans', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; color: #e0e0e0; padding: 20px; }
+  h1 { text-align: center; font-size: 2rem; margin-bottom: 4px; background: linear-gradient(90deg, #f7971e, #ffd200); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { text-align: center; color: #ffd200; font-size: 1rem; font-weight: bold; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .spec-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .spec-badge { background: rgba(255,210,0,0.1); color: #ffd200; border: 1px solid rgba(255,210,0,0.25); border-radius: 8px; padding: 3px 10px; font-size: 0.75rem; }
+  .save-indicator { text-align: center; font-size: 0.78rem; color: #38ef7d; height: 18px; transition: opacity 0.5s; opacity: 0; margin-bottom: 10px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+  .card h2 { color: #ffd200; margin-bottom: 16px; font-size: 1.1rem; }
+  .section-label { font-size: 0.85rem; color: #ffd200; font-weight: bold; margin: 16px 0 10px; border-left: 3px solid #ffd200; padding-left: 8px; }
+  label { display: block; font-size: 0.75rem; color: #aaa; margin-bottom: 4px; }
+  input[type="text"], input[type="number"], input[type="date"] { width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 0.9rem; outline: none; transition: border 0.2s; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+  input:focus { border-color: #ffd200; }
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .daily-wrap { overflow-x: auto; }
+  .daily-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 620px; table-layout: fixed; }
+  .daily-table th.col-date { width: 100px; }
+  .daily-table th.col-name { width: 120px; }
+  .daily-table th.col-sm   { width: 62px; }
+  .daily-table th.col-md   { width: 70px; }
+  .daily-table th.col-lg   { width: 74px; }
+  .daily-table th.col-del  { width: 34px; }
+  .daily-table th { background: rgba(255,210,0,0.15); color: #ffd200; padding: 8px 6px; text-align: center; white-space: nowrap; }
+  .daily-table td { padding: 4px 3px; text-align: center; vertical-align: middle; }
+  .daily-table td input { text-align: center; padding: 6px 4px; }
+  .btn-remove-row { background: rgba(255,70,70,0.15); color: #ff9090; border: 1px solid rgba(255,70,70,0.25); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; }
+  .btn-remove-row:hover { background: rgba(255,70,70,0.3); }
+  .btn-add-row { background: rgba(255,255,255,0.07); color: #aaa; border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px; padding: 8px; width: 100%; cursor: pointer; font-size: 0.85rem; margin-top: 8px; transition: all 0.2s; }
+  .btn-add-row:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: all 0.2s; }
+  .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-primary { background: linear-gradient(90deg, #f7971e, #ffd200); color: #1a1a2e; width: 100%; margin-top: 12px; }
+  .btn-bulk { background: rgba(255,210,0,0.15); color: #ffd200; border: 1px solid rgba(255,210,0,0.35); width: 100%; font-size: 0.95rem; padding: 11px; margin-top: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+  .btn-bulk:hover { background: rgba(255,210,0,0.28); }
+  .btn-analyze { background: linear-gradient(90deg, #11998e, #38ef7d); color: #fff; width: 100%; font-size: 1.1rem; padding: 14px; margin-top: 10px; border-radius: 12px; }
+  .btn-quick { background: rgba(255,210,0,0.12); color: #ffd200; border: 1px solid rgba(255,210,0,0.25); padding: 4px 10px; font-size: 0.78rem; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+  .btn-quick:hover { background: rgba(255,210,0,0.28); }
+  .btn-edit { background: rgba(100,160,255,0.2); color: #88bbff; border: 1px solid rgba(100,160,255,0.3); padding: 5px 12px; font-size: 0.78rem; border-radius: 6px; cursor: pointer; }
+  .btn-edit:hover { background: rgba(100,160,255,0.35); }
+  .btn-delete { background: rgba(255,70,70,0.2); color: #ff7070; border: 1px solid rgba(255,70,70,0.3); padding: 5px 12px; font-size: 0.78rem; border-radius: 6px; cursor: pointer; }
+  .btn-delete:hover { background: rgba(255,70,70,0.35); }
+  .csv-bar { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .btn-csv-export { background: rgba(56,239,125,0.15); color: #38ef7d; border: 1px solid rgba(56,239,125,0.3); padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: all 0.2s; }
+  .btn-csv-export:hover { background: rgba(56,239,125,0.28); }
+  .btn-csv-import { background: rgba(100,160,255,0.15); color: #88bbff; border: 1px solid rgba(100,160,255,0.3); padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: all 0.2s; }
+  .btn-csv-import:hover { background: rgba(100,160,255,0.28); }
+  .csv-note { font-size: 0.75rem; color: #888; margin-top: 6px; }
+  .reg-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .reg-table th { background: rgba(255,210,0,0.12); color: #ffd200; padding: 8px 10px; text-align: left; }
+  .reg-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: middle; }
+  .reg-table tr:hover td { background: rgba(255,255,255,0.03); }
+  .actions { display: flex; gap: 6px; }
+  .data-count { display: inline-block; background: rgba(255,210,0,0.15); color: #ffd200; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; }
+  .hama-badge { display: inline-block; font-size: 0.75rem; padding: 3px 9px; border-radius: 8px; font-weight: bold; white-space: nowrap; }
+  .hama-ok   { background: rgba(56,239,125,0.15); color: #38ef7d; border: 1px solid rgba(56,239,125,0.25); }
+  .hama-warn { background: rgba(255,210,0,0.15);  color: #ffd200;  border: 1px solid rgba(255,210,0,0.25); }
+  .hama-deep { background: rgba(255,70,70,0.18);  color: #ff7070;  border: 1px solid rgba(255,70,70,0.3); }
+  .bulk-ctx { font-size: 0.72rem; color: #888; margin-top: 2px; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 28px; width: 92%; max-width: 780px; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { color: #ffd200; margin-bottom: 16px; font-size: 1.1rem; }
+  .modal-footer { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-save { background: linear-gradient(90deg, #11998e, #38ef7d); color: #fff; flex: 1; border: none; border-radius: 8px; padding: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+  .btn-cancel { background: rgba(255,255,255,0.08); color: #aaa; border: 1px solid rgba(255,255,255,0.15); flex: 1; border-radius: 8px; padding: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+  .result-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
+  .result-card.rank-1 { border-color: #ffd200; background: rgba(255,210,0,0.07); }
+  .result-card.rank-1::before { content: '👑 おすすめ！'; position: absolute; top: 12px; right: 16px; background: linear-gradient(90deg, #f7971e, #ffd200); color: #1a1a2e; font-weight: bold; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; }
+  .result-card.rank-2 { border-color: #aaa; }
+  .result-card.rank-3 { border-color: #cd7f32; }
+  .rank-badge { font-size: 1.8rem; margin-right: 8px; }
+  .machine-name-result { font-size: 1.15rem; font-weight: bold; color: #fff; }
+  .total-score-display { font-size: 2rem; font-weight: bold; color: #ffd200; margin-left: 12px; }
+  .score-bar-wrap { margin: 12px 0 4px; }
+  .score-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: #aaa; margin-bottom: 3px; }
+  .score-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+  .score-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .fill-lean { background: linear-gradient(90deg, #11998e, #38ef7d); }
+  .fill-activity { background: linear-gradient(90deg, #f7971e, #ffd200); }
+  .fill-streak { background: linear-gradient(90deg, #e96ce8, #c471ed); }
+  .fill-rush { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 12px; }
+  .stat-box { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; text-align: center; }
+  .stat-box .val { font-size: 1.2rem; font-weight: bold; color: #ffd200; }
+  .stat-box .stat-name { font-size: 0.7rem; color: #aaa; margin-top: 2px; }
+  .score-comment { font-size: 0.82rem; color: #aab; margin-top: 6px; }
+  .info-note { font-size: 0.75rem; color: #888; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 14px; margin-top: 12px; line-height: 1.6; }
+  .calc-note { font-size: 0.75rem; color: #7cb3ff; background: rgba(100,160,255,0.07); border: 1px solid rgba(100,160,255,0.18); border-radius: 8px; padding: 10px 14px; margin-top: 8px; line-height: 1.8; }
+  .month-header-row td { background:rgba(255,210,0,0.1); color:#ffd200; font-weight:bold; padding:8px 10px; cursor:pointer; user-select:none; border-top:1px solid rgba(255,210,0,0.2); }
+  .month-header-row:hover td { background:rgba(255,210,0,0.2); }
+  @media (max-width:600px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>まみちゃんの分析アプリ</h1>
+  <p class="subtitle">【北斗無双専用】</p>
+  <div class="spec-badges">
+    <span class="spec-badge">確率 1/159.8</span>
+    <span class="spec-badge">RUSH突入率 20%</span>
+    <span class="spec-badge">RUSH継続率 82%</span>
+    <span class="spec-badge">RUSH中確率 1/3.49</span>
+    <span class="spec-badge">RUSH固定 5回転</span>
+  </div>
+  <p class="save-indicator" id="saveIndicator"></p>
+
+  <div class="card">
+    <h2>📋 台を追加する</h2>
+    <div><label>台番号 / 台名</label><input type="text" id="machineName" placeholder="例：北斗無双369、369番台"></div>
+    <div class="section-label">📅 日次データ</div>
+    <div class="daily-wrap">
+      <table class="daily-table">
+        <thead><tr><th class="col-date">日付</th><th class="col-sm">大当たり<br>回数</th><th class="col-lg">総回転数</th><th class="col-md">前日最終<br>スタート</th><th class="col-sm">初当たり<br>回数</th><th class="col-lg">最大持玉</th><th class="col-sm">最大連<br>チャン数</th><th class="col-del"></th></tr></thead>
+        <tbody id="dailyTableBody"></tbody>
+      </table>
+    </div>
+    <button class="btn-add-row" onclick="addDailyRow()">＋ 日付を追加する</button>
+    <button class="btn btn-primary" onclick="submitMachine()">＋ この台を追加する</button>
+    <div class="info-note">
+      ※ 初当たり回数はRUSH中の連チャンを除いた回数です。できるだけ入力してください。<br>
+      ※ 台を追加したあとも「✏️ 編集」からいつでも日付の追加・修正ができます。データは自動保存されます。
+    </div>
+    <div class="calc-note">
+      💡 通常時回転数 ＝ 総回転数 − 大当たり回数 × 5（RUSH固定5回転を除外）<br>
+      💡 実初当たり確率 ＝ 通常時回転数 ÷ 初当たり回数　（理論値 1/159.8 と比較）
+    </div>
+  </div>
+
+  <div class="card" id="machinesCard" style="display:none;">
+    <h2>📊 登録済みの台 <span id="machineCount" style="font-size:0.85rem;color:#aaa;"></span></h2>
+    <div style="overflow-x:auto;">
+      <table class="reg-table">
+        <thead><tr><th>台名（タップで素早く追加）</th><th>ハマり推定</th><th>最終データ</th><th>データ日数</th><th>操作</th></tr></thead>
+        <tbody id="machineTableBody"></tbody>
+      </table>
+    </div>
+    <div class="info-note" style="margin-top:10px;">
+      🟢 正常（〜159回転）　🟡 ハマり中（160〜319回転）　🔴 深ハマり（320回転〜）<br>
+      ※ 最終データで大当たりがある日はハマり推定を表示できません（—）。
+    </div>
+    <button class="btn-bulk" onclick="openBulkModal()">📝 今日のデータを一括入力</button>
+    <button class="btn btn-analyze" onclick="analyzeMachines()">🔍 分析して台をランキング！</button>
+    <div class="csv-bar">
+      <button class="btn-csv-export" onclick="exportCSV()">📥 CSVでバックアップ</button>
+      <button class="btn-csv-import" onclick="document.getElementById('csvFileInput').click()">📤 CSVから復元</button>
+      <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importCSV(event)">
+    </div>
+    <p class="csv-note">※ CSVバックアップはGoogleドライブなどに保存しておくと安心です。</p>
+  </div>
+
+  <div id="resultsArea"></div>
+</div>
+
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>✏️ 台を編集する</h2>
+    <input type="hidden" id="modalEditIndex">
+    <div style="margin-bottom:16px;"><label>台番号 / 台名</label><input type="text" id="m_name" placeholder="例：北斗無双369"></div>
+    <div class="section-label">📅 日次データ</div>
+    <div class="daily-wrap">
+      <table class="daily-table">
+        <thead><tr><th class="col-date">日付</th><th class="col-sm">大当たり<br>回数</th><th class="col-lg">総回転数</th><th class="col-md">前日最終<br>スタート</th><th class="col-sm">初当たり<br>回数</th><th class="col-lg">最大持玉</th><th class="col-sm">最大連<br>チャン数</th><th class="col-del"></th></tr></thead>
+        <tbody id="m_dailyTableBody"></tbody>
+      </table>
+    </div>
+    <button class="btn-add-row" onclick="addModalDailyRow()">＋ 日付を追加する</button>
+    <div class="modal-footer">
+      <button class="btn-save" onclick="saveEdit()">💾 保存する</button>
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- サッと追加モーダル -->
+<div class="modal-overlay" id="quickModal">
+  <div class="modal" style="max-width:460px;">
+    <h2 id="quickModalTitle">⚡ サッと追加</h2>
+    <input type="hidden" id="quickMachineIndex">
+    <div style="margin-bottom:12px;"><label>日付</label><input type="date" id="q_date"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div><label>大当たり回数</label><input type="number" id="q_hits" placeholder="0" min="0"></div>
+      <div><label>総回転数</label><input type="number" id="q_spins" placeholder="0" min="0"></div>
+      <div><label>前日最終スタート</label><input type="number" id="q_prev" placeholder="0" min="0"></div>
+      <div><label>初当たり回数</label><input type="number" id="q_first" placeholder="0" min="0"></div>
+      <div><label>最大持玉</label><input type="number" id="q_maxball" placeholder="0" min="0"></div>
+      <div><label>最大連チャン数</label><input type="number" id="q_streak" placeholder="0" min="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-save" onclick="saveQuick()">💾 追加する</button>
+      <button class="btn-cancel" onclick="closeQuickModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- 一括入力モーダル -->
+<div class="modal-overlay" id="bulkModal">
+  <div class="modal" style="max-width:860px;">
+    <h2>📝 今日のデータを一括入力</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <label style="white-space:nowrap;">日付</label>
+      <input type="date" id="bulk_date" style="max-width:180px;">
+    </div>
+    <div class="daily-wrap">
+      <table class="daily-table">
+        <thead><tr>
+          <th class="col-name" style="text-align:left;padding-left:8px;">台名</th>
+          <th class="col-sm">大当たり<br>回数</th>
+          <th class="col-lg">総回転数</th>
+          <th class="col-md">前日最終<br>スタート</th>
+          <th class="col-sm">初当たり<br>回数</th>
+          <th class="col-lg">最大持玉</th>
+          <th class="col-sm">最大連<br>チャン数</th>
+        </tr></thead>
+        <tbody id="bulkTableBody"></tbody>
+      </table>
+    </div>
+    <p style="font-size:0.75rem;color:#888;margin-top:8px;">
+      ※ 入力しない台は空白のままでOKです。空白の台はスキップされます。<br>
+      ※ 入力内容は自動で下書き保存されます。誤って閉じても次に開いたとき復元されます。
+    </p>
+    <div class="modal-footer">
+      <button class="btn-save" onclick="saveBulk()">💾 まとめて保存する</button>
+      <button class="btn-cancel" onclick="closeBulkModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'pachinko_hokuto_v1';
+const SPEC = Object.freeze({
+  prob: 159.8,
+  rushRate: 20,
+  rushCont: 82,
+  rushProb: 3.49,
+  rushSpins: 5
+});
+let machines = [], addRowCount = 0, modalRowCount = 0;
+
+function saveData() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(machines)); } catch(e) {}
+  const el = document.getElementById('saveIndicator');
+  el.textContent = '✅ 自動保存しました'; el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 2000);
+}
+function loadData() {
+  try {
+    let s = localStorage.getItem(STORAGE_KEY);
+    let migrated = false;
+    if (!s) { s = localStorage.getItem('pachinko_machines_v1'); migrated = true; }
+    if (s) {
+      machines = JSON.parse(s);
+      updateMachineTable();
+      if (migrated) saveData();
+    }
+  } catch(e) {}
+}
+
+function addDailyRow(date='', hits='', spins='', prevStart='', firstHits='', maxBall='', streak='') {
+  const id = addRowCount++;
+  const tr = document.createElement('tr');
+  tr.id = `addrow_${id}`;
+  tr.innerHTML = `<td><input type="date" id="adate_${id}" value="${date}"></td><td><input type="number" id="ahits_${id}" value="${hits}" placeholder="0" min="0"></td><td><input type="number" id="aspins_${id}" value="${spins}" placeholder="0" min="0"></td><td><input type="number" id="aprev_${id}" value="${prevStart}" placeholder="0" min="0"></td><td><input type="number" id="afirst_${id}" value="${firstHits}" placeholder="0" min="0"></td><td><input type="number" id="amaxball_${id}" value="${maxBall}" placeholder="0" min="0"></td><td><input type="number" id="astreak_${id}" value="${streak}" placeholder="0" min="0"></td><td><button class="btn-remove-row" onclick="document.getElementById('addrow_${id}').remove()">✕</button></td>`;
+  document.getElementById('dailyTableBody').appendChild(tr);
+}
+function collectAddRows() {
+  return [...document.getElementById('dailyTableBody').querySelectorAll('tr')].map(tr => {
+    const id = tr.id.replace('addrow_', '');
+    const date = document.getElementById(`adate_${id}`)?.value || '';
+    const hits = parseInt(document.getElementById(`ahits_${id}`)?.value) || 0;
+    const spins = parseInt(document.getElementById(`aspins_${id}`)?.value) || 0;
+    const prevStart = parseInt(document.getElementById(`aprev_${id}`)?.value) || 0;
+    const firstHits = parseInt(document.getElementById(`afirst_${id}`)?.value) || 0;
+    const maxBall = parseInt(document.getElementById(`amaxball_${id}`)?.value) || 0;
+    const streak = parseInt(document.getElementById(`astreak_${id}`)?.value) || 0;
+    return date ? { date, hits, spins, prevStart, firstHits, maxBall, streak } : null;
+  }).filter(Boolean);
+}
+
+function submitMachine() {
+  const name = document.getElementById('machineName').value.trim();
+  if (!name) { alert('台番号または台名を入力してください'); return; }
+  const dailyData = collectAddRows();
+  if (dailyData.length === 0) { alert('少なくとも1日分の日付とデータを入力してください'); return; }
+  machines.push({ name, dailyData });
+  updateMachineTable(); saveData(); resetAddForm(); document.getElementById('resultsArea').innerHTML = '';
+}
+function resetAddForm() {
+  document.getElementById('machineName').value = '';
+  document.getElementById('dailyTableBody').innerHTML = ''; addRowCount = 0;
+}
+
+// ハマり推定：最新エントリが0当たりのとき prevStart+spins を返す
+function getHamaEstimate(m) {
+  if (!m.dailyData || m.dailyData.length === 0) return { val: null, date: null };
+  const sorted = [...m.dailyData].sort((a, b) => a.date.localeCompare(b.date));
+  const latest = sorted[sorted.length - 1];
+  if (latest.hits === 0) {
+    return { val: (latest.prevStart || 0) + latest.spins, date: latest.date };
+  }
+  return { val: null, date: latest.date };
+}
+
+
+function hamaClass(val) {
+  if (val === null) return '';
+  if (val >= 320) return 'hama-deep';
+  if (val >= 160) return 'hama-warn';
+  return 'hama-ok';
+}
+
+function updateMachineTable() {
+  document.getElementById('machinesCard').style.display = machines.length > 0 ? 'block' : 'none';
+  document.getElementById('machineCount').textContent = `（${machines.length}台登録済み）`;
+  const tbody = document.getElementById('machineTableBody'); tbody.innerHTML = '';
+  machines.forEach((m, i) => {
+    const hama = getHamaEstimate(m);
+    const cls = hamaClass(hama.val);
+    const hamaCell = cls
+      ? `<span class="hama-badge ${cls}">${hama.val}回転</span>`
+      : `<span style="color:#666;font-size:0.82rem;">—</span>`;
+    const lastDate = hama.date ? hama.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2/$3') : '—';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><button class="btn-quick" onclick="openQuickModal(${i})">${m.name}</button></td>
+      <td>${hamaCell}</td>
+      <td style="font-size:0.82rem;color:#aaa;">${lastDate}</td>
+      <td><span class="data-count">${m.dailyData.length}日分</span></td>
+      <td><div class="actions"><button class="btn-edit" onclick="openEditModal(${i})">✏️ 編集</button><button class="btn-delete" onclick="deleteMachine(${i})">🗑️ 削除</button></div></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function deleteMachine(idx) {
+  if (!confirm(`「${machines[idx].name}」を削除しますか？`)) return;
+  machines.splice(idx, 1); updateMachineTable(); saveData(); document.getElementById('resultsArea').innerHTML = '';
+}
+
+function openEditModal(idx) {
+  const m = machines[idx];
+  document.getElementById('modalEditIndex').value = idx;
+  document.getElementById('m_name').value = m.name;
+  document.getElementById('m_dailyTableBody').innerHTML = ''; modalRowCount = 0;
+  renderModalByMonth(m.dailyData);
+  document.getElementById('editModal').classList.add('open');
+}
+function createModalDataRow(date='', hits='', spins='', prevStart='', firstHits='', maxBall='', streak='') {
+  const id = modalRowCount++;
+  const tr = document.createElement('tr');
+  tr.id = `mrow_${id}`;
+  tr.innerHTML = `<td><input type="date" id="mdate_${id}" value="${date}"></td><td><input type="number" id="mhits_${id}" value="${hits}" placeholder="0" min="0"></td><td><input type="number" id="mspins_${id}" value="${spins}" placeholder="0" min="0"></td><td><input type="number" id="mprev_${id}" value="${prevStart}" placeholder="0" min="0"></td><td><input type="number" id="mfirst_${id}" value="${firstHits}" placeholder="0" min="0"></td><td><input type="number" id="mmaxball_${id}" value="${maxBall}" placeholder="0" min="0"></td><td><input type="number" id="mstreak_${id}" value="${streak}" placeholder="0" min="0"></td><td><button class="btn-remove-row" onclick="document.getElementById('mrow_${id}').remove()">✕</button></td>`;
+  return tr;
+}
+function addModalDailyRow(date='', hits='', spins='', prevStart='', firstHits='', maxBall='', streak='') {
+  document.getElementById('m_dailyTableBody').appendChild(createModalDataRow(date, hits, spins, prevStart, firstHits, maxBall, streak));
+}
+function renderModalByMonth(dailyData) {
+  const tbody = document.getElementById('m_dailyTableBody');
+  const groups = {};
+  dailyData.forEach(d => { const ym = d.date.slice(0,7); if (!groups[ym]) groups[ym]=[]; groups[ym].push(d); });
+  Object.keys(groups).sort().reverse().forEach((ym, idx) => {
+    const [y, mo] = ym.split('-');
+    const days = [...groups[ym]].sort((a,b) => a.date.localeCompare(b.date));
+    const isOpen = idx === 0;
+    const headerTr = document.createElement('tr');
+    headerTr.className = 'month-header-row'; headerTr.dataset.ym = ym;
+    headerTr.innerHTML = `<td colspan="8" onclick="toggleMonthSection('${ym}')">${isOpen?'▼':'▶'} ${y}年${parseInt(mo)}月（${days.length}日分）</td>`;
+    tbody.appendChild(headerTr);
+    days.forEach(d => {
+      const tr = createModalDataRow(d.date, d.hits, d.spins, d.prevStart||0, d.firstHits||0, d.maxBall||0, d.streak);
+      tr.dataset.month = ym;
+      if (!isOpen) tr.style.display = 'none';
+      tbody.appendChild(tr);
+    });
+  });
+}
+function toggleMonthSection(ym) {
+  const tbody = document.getElementById('m_dailyTableBody');
+  const rows = [...tbody.querySelectorAll(`tr[data-month="${ym}"]`)];
+  const headerTr = [...tbody.querySelectorAll('.month-header-row')].find(r => r.dataset.ym === ym);
+  if (!headerTr) return;
+  const td = headerTr.querySelector('td');
+  const isCollapsed = rows.length > 0 && rows[0].style.display === 'none';
+  rows.forEach(r => r.style.display = isCollapsed ? '' : 'none');
+  td.textContent = (isCollapsed ? '▼' : '▶') + td.textContent.slice(1);
+}
+function collectModalRows() {
+  return [...document.getElementById('m_dailyTableBody').querySelectorAll('tr[id^="mrow_"]')].map(tr => {
+    const id = tr.id.replace('mrow_', '');
+    const date = document.getElementById(`mdate_${id}`)?.value || '';
+    const hits = parseInt(document.getElementById(`mhits_${id}`)?.value) || 0;
+    const spins = parseInt(document.getElementById(`mspins_${id}`)?.value) || 0;
+    const prevStart = parseInt(document.getElementById(`mprev_${id}`)?.value) || 0;
+    const firstHits = parseInt(document.getElementById(`mfirst_${id}`)?.value) || 0;
+    const maxBall = parseInt(document.getElementById(`mmaxball_${id}`)?.value) || 0;
+    const streak = parseInt(document.getElementById(`mstreak_${id}`)?.value) || 0;
+    return date ? { date, hits, spins, prevStart, firstHits, maxBall, streak } : null;
+  }).filter(Boolean);
+}
+function saveEdit() {
+  const idx = parseInt(document.getElementById('modalEditIndex').value);
+  const name = document.getElementById('m_name').value.trim();
+  if (!name) { alert('台名を入力してください'); return; }
+  const dailyData = collectModalRows();
+  if (dailyData.length === 0) { alert('少なくとも1日分のデータが必要です'); return; }
+  machines[idx] = { name, dailyData };
+  updateMachineTable(); saveData(); closeModal(); document.getElementById('resultsArea').innerHTML = '';
+}
+function closeModal() { document.getElementById('editModal').classList.remove('open'); }
+document.getElementById('editModal').addEventListener('click', e => { if (e.target === document.getElementById('editModal')) closeModal(); });
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function openQuickModal(idx) {
+  document.getElementById('quickMachineIndex').value = idx;
+  document.getElementById('quickModalTitle').textContent = `⚡ ${machines[idx].name} にサッと追加`;
+  document.getElementById('q_date').value = todayStr();
+  ['q_hits','q_spins','q_prev','q_first','q_maxball','q_streak'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('quickModal').classList.add('open');
+}
+function saveQuick() {
+  const idx = parseInt(document.getElementById('quickMachineIndex').value);
+  const date = document.getElementById('q_date').value;
+  if (!date) { alert('日付を入力してください'); return; }
+  const hits = parseInt(document.getElementById('q_hits').value) || 0;
+  const spins = parseInt(document.getElementById('q_spins').value) || 0;
+  const prevStart = parseInt(document.getElementById('q_prev').value) || 0;
+  const firstHits = parseInt(document.getElementById('q_first').value) || 0;
+  const maxBall = parseInt(document.getElementById('q_maxball').value) || 0;
+  const streak = parseInt(document.getElementById('q_streak').value) || 0;
+  if (hits === 0 && spins === 0 && prevStart === 0 && firstHits === 0 && maxBall === 0 && streak === 0) { alert('いずれかの項目を入力してください'); return; }
+  const ex = machines[idx].dailyData.findIndex(d => d.date === date);
+  if (ex >= 0) { if (!confirm(`${date} のデータがすでにあります。上書きしますか？`)) return; machines[idx].dailyData[ex] = { date, hits, spins, prevStart, firstHits, maxBall, streak }; }
+  else { machines[idx].dailyData.push({ date, hits, spins, prevStart, firstHits, maxBall, streak }); }
+  updateMachineTable(); saveData(); closeQuickModal();
+}
+function closeQuickModal() { document.getElementById('quickModal').classList.remove('open'); }
+document.getElementById('quickModal').addEventListener('click', e => { if (e.target === document.getElementById('quickModal')) closeQuickModal(); });
+
+const BULK_DRAFT_KEY = 'pachinko_bulk_draft_hokuto';
+
+function openBulkModal() {
+  if (machines.length === 0) { alert('台が登録されていません'); return; }
+  const tbody = document.getElementById('bulkTableBody'); tbody.innerHTML = '';
+  machines.forEach((m, i) => {
+    const hama = getHamaEstimate(m);
+    const cls = hamaClass(hama.val);
+    const lastDate = hama.date ? hama.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2/$3') : '—';
+    const hamaText = hama.val !== null
+      ? `<span class="${cls}" style="font-weight:bold;">${hama.val}回転</span>`
+      : `<span style="color:#666;">—</span>`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="text-align:left;padding-left:8px;">
+        <div style="color:#fff;font-weight:bold;">${m.name}</div>
+        <div class="bulk-ctx">最終: ${lastDate}　ハマり推定: ${hamaText}</div>
+      </td>
+      <td><input type="number" id="b_hits_${i}" placeholder="0" min="0"></td>
+      <td><input type="number" id="b_spins_${i}" placeholder="0" min="0"></td>
+      <td><input type="number" id="b_prev_${i}" placeholder="0" min="0"></td>
+      <td><input type="number" id="b_first_${i}" placeholder="0" min="0"></td>
+      <td><input type="number" id="b_maxball_${i}" placeholder="0" min="0"></td>
+      <td><input type="number" id="b_streak_${i}" placeholder="0" min="0"></td>`;
+    tbody.appendChild(tr);
+  });
+  try {
+    const draft = JSON.parse(localStorage.getItem(BULK_DRAFT_KEY) || 'null');
+    if (draft) {
+      document.getElementById('bulk_date').value = draft.date || todayStr();
+      machines.forEach((_, i) => {
+        if (draft.rows && draft.rows[i]) {
+          ['hits','spins','prev','first','maxball','streak'].forEach(f => {
+            const el = document.getElementById(`b_${f}_${i}`);
+            if (el && draft.rows[i][f]) el.value = draft.rows[i][f];
+          });
+        }
+      });
+    } else {
+      document.getElementById('bulk_date').value = todayStr();
+    }
+  } catch(e) { document.getElementById('bulk_date').value = todayStr(); }
+  document.getElementById('bulkModal').addEventListener('input', saveBulkDraft);
+  document.getElementById('bulkModal').classList.add('open');
+}
+function saveBulkDraft() {
+  try {
+    const date = document.getElementById('bulk_date').value;
+    const rows = machines.map((_, i) => ({
+      hits: document.getElementById(`b_hits_${i}`)?.value || '',
+      spins: document.getElementById(`b_spins_${i}`)?.value || '',
+      prev: document.getElementById(`b_prev_${i}`)?.value || '',
+      first: document.getElementById(`b_first_${i}`)?.value || '',
+      maxball: document.getElementById(`b_maxball_${i}`)?.value || '',
+      streak: document.getElementById(`b_streak_${i}`)?.value || ''
+    }));
+    localStorage.setItem(BULK_DRAFT_KEY, JSON.stringify({ date, rows }));
+  } catch(e) {}
+}
+function saveBulk() {
+  const date = document.getElementById('bulk_date').value;
+  if (!date) { alert('日付を入力してください'); return; }
+  let cnt = 0;
+  machines.forEach((m, i) => {
+    const hits = parseInt(document.getElementById(`b_hits_${i}`)?.value) || 0;
+    const spins = parseInt(document.getElementById(`b_spins_${i}`)?.value) || 0;
+    const prevStart = parseInt(document.getElementById(`b_prev_${i}`)?.value) || 0;
+    const firstHits = parseInt(document.getElementById(`b_first_${i}`)?.value) || 0;
+    const maxBall = parseInt(document.getElementById(`b_maxball_${i}`)?.value) || 0;
+    const streak = parseInt(document.getElementById(`b_streak_${i}`)?.value) || 0;
+    if (hits === 0 && spins === 0 && prevStart === 0 && firstHits === 0 && maxBall === 0 && streak === 0) return;
+    const ex = m.dailyData.findIndex(d => d.date === date);
+    if (ex >= 0) { m.dailyData[ex] = { date, hits, spins, prevStart, firstHits, maxBall, streak }; }
+    else { m.dailyData.push({ date, hits, spins, prevStart, firstHits, maxBall, streak }); }
+    cnt++;
+  });
+  if (cnt === 0) { alert('入力されたデータがありません'); return; }
+  try { localStorage.removeItem(BULK_DRAFT_KEY); } catch(e) {}
+  updateMachineTable(); saveData(); closeBulkModal(); alert(`✅ ${cnt}台分のデータを保存しました！`);
+}
+function closeBulkModal() {
+  document.getElementById('bulkModal').removeEventListener('input', saveBulkDraft);
+  document.getElementById('bulkModal').classList.remove('open');
+}
+
+function exportCSV() {
+  if (machines.length === 0) { alert('エクスポートするデータがありません'); return; }
+  const rows = [['台名','日付','大当たり回数','総回転数','前日最終スタート','初当たり回数','最大持玉','最大連チャン数']];
+  machines.forEach(m => {
+    if (m.dailyData.length === 0) { rows.push([m.name,'','','','','','','']); }
+    else { m.dailyData.forEach(d => { rows.push([m.name, d.date, d.hits, d.spins, d.prevStart||0, d.firstHits||0, d.maxBall||0, d.streak]); }); }
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿'+csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = `北斗無双データ_${todayStr()}.csv`; a.click();
+}
+function importCSV(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let text = e.target.result;
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) { alert('データが見つかりませんでした'); return; }
+      function parseCSVLine(line) {
+        const result = []; let cur = ''; let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else { inQ = !inQ; } }
+          else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+          else { cur += c; }
+        }
+        result.push(cur.trim()); return result;
+      }
+      const header = parseCSVLine(lines[0]);
+      const nameIdx = header.indexOf('台名');
+      const dateIdx = header.indexOf('日付');
+      const hitsIdx = header.indexOf('大当たり回数');
+      const spinsIdx = header.indexOf('総回転数');
+      const prevStartIdx = header.indexOf('前日最終スタート');
+      const firstHitsIdx = header.indexOf('初当たり回数');
+      const maxBallIdx = header.indexOf('最大持玉');
+      const streakIdx = header.indexOf('最大連チャン数');
+      if (nameIdx < 0 || dateIdx < 0) { alert('CSVの形式が正しくありません。このアプリで出力したCSVを使ってください。'); return; }
+      const machineMap = {};
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const cols = parseCSVLine(lines[i]);
+        const name = cols[nameIdx] || ''; if (!name) continue;
+        if (!machineMap[name]) { machineMap[name] = { name, dailyData: [] }; }
+        const date = cols[dateIdx] || '';
+        if (date) {
+          machineMap[name].dailyData.push({
+            date,
+            hits: parseInt(cols[hitsIdx]) || 0,
+            spins: parseInt(cols[spinsIdx]) || 0,
+            prevStart: prevStartIdx >= 0 ? (parseInt(cols[prevStartIdx]) || 0) : 0,
+            firstHits: firstHitsIdx >= 0 ? (parseInt(cols[firstHitsIdx]) || 0) : 0,
+            maxBall: maxBallIdx >= 0 ? (parseInt(cols[maxBallIdx]) || 0) : 0,
+            streak: streakIdx >= 0 ? (parseInt(cols[streakIdx]) || 0) : 0
+          });
+        }
+      }
+      const imported = Object.values(machineMap);
+      if (imported.length === 0) { alert('読み込めるデータがありませんでした'); return; }
+      const mode = confirm(`${imported.length}台分のデータを読み込みます。\n\n【OK】現在のデータに追加する\n【キャンセル】現在のデータを上書き`);
+      if (mode) {
+        imported.forEach(imp => {
+          const ex = machines.find(m => m.name === imp.name);
+          if (ex) { imp.dailyData.forEach(d => { if (!ex.dailyData.find(ed => ed.date === d.date)) ex.dailyData.push(d); }); }
+          else { machines.push(imp); }
+        });
+      } else { machines = imported; }
+      updateMachineTable(); saveData(); alert(`✅ ${imported.length}台分のデータを読み込みました！`);
+    } catch(err) { alert('CSVの読み込みに失敗しました: ' + err.message); }
+    event.target.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function analyzeMachines() {
+  if (machines.length === 0) { alert('台が登録されていません'); return; }
+  const scored = machines.map(m => {
+    const active = m.dailyData.filter(d => d.spins > 0 || d.hits > 0);
+    const totalHits = active.reduce((s,d) => s + d.hits, 0);
+    const totalFirstHits = active.reduce((s,d) => s + (d.firstHits || 0), 0);
+    const totalSpins = active.reduce((s,d) => s + d.spins, 0);
+    const maxStreak = Math.max(...m.dailyData.map(d => d.streak), 0);
+
+    // RUSH固定5回転×大当たり回数を除いた通常時回転数
+    const normalSpins = Math.max(0, totalSpins - totalHits * SPEC.rushSpins);
+    const effHits = totalFirstHits > 0 ? totalFirstHits : totalHits;
+    const actualRate = normalSpins > 0 && effHits > 0 ? normalSpins / effHits : Infinity;
+
+    const sorted = [...m.dailyData].sort((a,b) => a.date.localeCompare(b.date));
+    const recent7 = sorted.slice(-7).filter(d => d.spins > 0);
+
+    let leanScore = 50, activityScore = 50, streakScore = 50;
+
+    if (normalSpins > 0 && effHits > 0) {
+      const ratio = effHits / (normalSpins / SPEC.prob);
+      if (ratio < 0.5) leanScore = 95;
+      else if (ratio < 0.7) leanScore = 85;
+      else if (ratio < 0.85) leanScore = 75;
+      else if (ratio < 1.0) leanScore = 65;
+      else if (ratio < 1.2) leanScore = 50;
+      else if (ratio < 1.5) leanScore = 35;
+      else leanScore = 20;
+    }
+
+    if (recent7.length > 0) {
+      const rFirst = recent7.reduce((s,d) => s + (d.firstHits || 0), 0);
+      const rHits = recent7.reduce((s,d) => s + d.hits, 0);
+      const rSpins = recent7.reduce((s,d) => s + d.spins, 0);
+      const rNormalSpins = Math.max(0, rSpins - rHits * SPEC.rushSpins);
+      const rEff = rFirst > 0 ? rFirst : rHits;
+      if (rNormalSpins > 0 && rEff > 0) {
+        const ratio = (rEff / rNormalSpins) * SPEC.prob;
+        if (ratio > 1.5) activityScore = 90;
+        else if (ratio > 1.2) activityScore = 75;
+        else if (ratio > 0.9) activityScore = 60;
+        else if (ratio > 0.6) activityScore = 45;
+        else activityScore = 30;
+        activityScore = Math.min(100, activityScore + active.length * 2);
+      }
+    }
+
+    // 北斗無双：継続率82% → 期待連チャン ≈ 5.6回
+    const expStreak = 1 / (1 - SPEC.rushCont / 100);
+    if (maxStreak > 0) {
+      if (maxStreak >= 12) streakScore = 90;
+      else if (maxStreak >= 8) streakScore = 80;
+      else if (maxStreak >= 6) streakScore = 70;
+      else if (maxStreak >= 4) streakScore = 60;
+      else streakScore = 50;
+      if (maxStreak / expStreak > 2.0) streakScore = Math.min(100, streakScore + 10);
+    }
+
+    // 実RUSH突入率の推定
+    // 期待RUSH継続数/突入 = rushCont% / (1 - rushCont%) = 0.82/0.18 ≈ 4.556
+    // 推定突入回数 = RUSH中当たり ÷ 4.556　→　実突入率 = 推定突入回数 ÷ 初当たり
+    const rushContPerEntry = (SPEC.rushCont / 100) / (1 - SPEC.rushCont / 100);
+    let rushEntryScore = 50;
+    let actualRushRate = null;
+    if (totalFirstHits > 0) {
+      const rushHitsCount = Math.max(0, totalHits - totalFirstHits);
+      const estimatedEntries = rushHitsCount / rushContPerEntry;
+      actualRushRate = (estimatedEntries / totalFirstHits) * 100;
+      if (actualRushRate <= 5)       rushEntryScore = 95;
+      else if (actualRushRate <= 10) rushEntryScore = 85;
+      else if (actualRushRate <= 15) rushEntryScore = 72;
+      else if (actualRushRate <= 20) rushEntryScore = 55;
+      else if (actualRushRate <= 28) rushEntryScore = 35;
+      else                           rushEntryScore = 20;
+    }
+
+    const totalScore = Math.round(leanScore * 0.40 + activityScore * 0.28 + streakScore * 0.15 + rushEntryScore * 0.17);
+    return { machine: m, totalHits, totalFirstHits, totalSpins, normalSpins, maxStreak, actualRate, leanScore, activityScore, streakScore, rushEntryScore, actualRushRate, totalScore, activeDays: active.length };
+  });
+  scored.sort((a,b) => b.totalScore - a.totalScore);
+  renderResults(scored);
+}
+
+const RANK_ICONS = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+const COMMENTS = [[95,'理論を大きく下回るハマり状態！今が狙い目かも🔥'],[85,'かなりハマっています。期待値高め！'],[75,'平均よりやや当たっていない状態。狙えます'],[65,'そこそこ打てそうな台'],[55,'標準的な状態'],[0,'最近よく当たっているので様子見かも']];
+function getComment(score) { for (const [t,text] of COMMENTS) { if (score >= t) return text; } return ''; }
+
+let _lastScored = [];
+
+function renderResultCard(s, idx) {
+  const m = s.machine;
+  const rankClass = idx===0?'rank-1':idx===1?'rank-2':idx===2?'rank-3':'';
+  const actualRateText = s.normalSpins > 0 && effHitsFor(s) > 0 ? `1/${Math.round(s.actualRate)}` : '—';
+  const rushHits = s.totalFirstHits > 0 ? (s.totalHits - s.totalFirstHits) : null;
+  const rushRateText = s.actualRushRate !== null ? `${s.actualRushRate.toFixed(1)}%` : '—';
+  const rushRateColor = s.actualRushRate !== null
+    ? (s.actualRushRate <= 15 ? 'color:#38ef7d;' : s.actualRushRate <= 20 ? 'color:#ffd200;' : 'color:#ff9090;')
+    : '';
+  const card = document.createElement('div');
+  card.className = `result-card ${rankClass}`;
+  card.innerHTML = `
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+      <span class="rank-badge">${RANK_ICONS[idx]||`${idx+1}位`}</span>
+      <span class="machine-name-result">${m.name}</span>
+      <span class="total-score-display">${s.totalScore}<small style="font-size:1rem;color:#aaa;">/100</small></span>
+    </div>
+    <p class="score-comment">${getComment(s.totalScore)}</p>
+    <div class="score-bar-wrap">
+      <div class="score-label"><span>ハマり期待度（通常時回転数ベース）</span><span>${s.leanScore}</span></div>
+      <div class="score-bar"><div class="score-fill fill-lean" style="width:${s.leanScore}%"></div></div>
+      <div class="score-label"><span>最近7日の活性度</span><span>${s.activityScore}</span></div>
+      <div class="score-bar"><div class="score-fill fill-activity" style="width:${s.activityScore}%"></div></div>
+      <div class="score-label"><span>連チャン評価</span><span>${s.streakScore}</span></div>
+      <div class="score-bar"><div class="score-fill fill-streak" style="width:${s.streakScore}%"></div></div>
+      <div class="score-label"><span>RUSH未消化度（突入率実績）</span><span>${s.rushEntryScore}</span></div>
+      <div class="score-bar"><div class="score-fill fill-rush" style="width:${s.rushEntryScore}%"></div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="val">${s.totalFirstHits > 0 ? s.totalFirstHits : '—'}</div><div class="stat-name">総初当たり数</div></div>
+      <div class="stat-box"><div class="val">${rushHits !== null ? rushHits : '—'}</div><div class="stat-name">RUSH中当たり数</div></div>
+      <div class="stat-box"><div class="val">${s.totalHits}</div><div class="stat-name">総大当たり数</div></div>
+      <div class="stat-box"><div class="val">${s.maxStreak}</div><div class="stat-name">最大連チャン</div></div>
+      <div class="stat-box"><div class="val">${s.normalSpins.toLocaleString()}</div><div class="stat-name">通常時回転数</div></div>
+      <div class="stat-box"><div class="val">${s.totalSpins.toLocaleString()}</div><div class="stat-name">総回転数（参考）</div></div>
+      <div class="stat-box"><div class="val">${actualRateText}</div><div class="stat-name">実初当たり確率</div></div>
+      <div class="stat-box"><div class="val" style="${rushRateColor}">${rushRateText}</div><div class="stat-name">実RUSH突入率（推定）</div></div>
+      <div class="stat-box"><div class="val">${s.activeDays}日</div><div class="stat-name">データ日数</div></div>
+    </div>`;
+  return card;
+}
+
+function effHitsFor(s) { return s.totalFirstHits > 0 ? s.totalFirstHits : s.totalHits; }
+
+function renderResults(scored) {
+  _lastScored = scored;
+  const area = document.getElementById('resultsArea');
+  area.innerHTML = `<h2 style="color:#ffd200;margin-bottom:16px;font-size:1.1rem;">🏆 分析結果ランキング</h2>`;
+  const listArea = document.createElement('div');
+  area.appendChild(listArea);
+  scored.forEach((s, idx) => { listArea.appendChild(renderResultCard(s, idx)); });
+  const note = document.createElement('div');
+  note.className = 'info-note';
+  note.style.marginTop = '20px';
+  note.textContent = '⚠️ このアプリはデータを統計的に分析して参考情報を提供するものです。パチンコは確率機器のため、過去データが未来の結果を保証するものではありません。遊技は適度にお楽しみください。';
+  area.appendChild(note);
+  area.scrollIntoView({ behavior: 'smooth' });
+}
+
+loadData();
+</script>
+</body>
+</html>
